@@ -1,0 +1,51 @@
+name: Publish
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    name: Pack & Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # required to push to GitHub Packages
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # required for Source Link
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test (unit + protocol only)
+        run: dotnet test --no-build -c Release --filter "Category!=Integration"
+
+      - name: Pack
+        run: dotnet pack src/wg-client.csproj --no-build -c Release -o ./artifacts
+
+      - name: Publish to GitHub Packages
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --source "https://nuget.pkg.github.com/proxylity/index.json" \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --skip-duplicate
+
+      - name: Publish to NuGet.org
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --source "https://api.nuget.org/v3/index.json" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --skip-duplicate

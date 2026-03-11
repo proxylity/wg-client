@@ -1,0 +1,129 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "WireGuard echo backend for wg-client integration testing.",
+  "Parameters": {
+    "ClientPublicKey": {
+      "Description": "WireGuard public key for the test client peer.",
+      "Type": "String",
+      "MinLength": 44,
+      "MaxLength": 44
+    },
+    "ClientCidrToAllow": {
+      "Description": "CIDR of client IPs allowed to connect. Default is open/everyone.",
+      "Type": "String",
+      "Default": "0.0.0.0/0"
+    }
+  },
+  "Mappings": {
+    "ProxylityConfig": {
+      "Fn::Transform": {
+        "Name": "AWS::Include",
+        "Parameters": {
+          "Location": {
+            "Fn::Sub": "s3://proxylity-config-${AWS::Region}/${AWS::AccountId}/customer-config.json"
+          }
+        }
+      }
+    }
+  },
+  "Resources": {
+    "EchoFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Runtime": "python3.12",
+        "Handler": "index.handler",
+        "InlineCode": {"Fn::Join": ["\n", [
+          "def handler(event, context):",
+          "    replies = []",
+          "    for m in event.get('Messages', []):",
+          "        replies.append({'Tag': m['Tag'], 'Data': m['Data'] + ' [echo]'})",
+          "    return {'Replies': replies}",
+          ""
+        ]]},
+        "Policies": ["AWSLambdaBasicExecutionRole"],
+        "MemorySize": 1024,
+        "Timeout": 10
+      }
+    },
+    "DestinationRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::FindInMap": ["ProxylityConfig", {"Ref": "AWS::Region"}, "ServiceRole"]
+                }
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "AllowLambdaInvoke",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": ["lambda:InvokeFunction"],
+                  "Resource": [{"Fn::GetAtt": ["EchoFunction", "Arn"]}]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Listener": {
+      "Type": "Custom::ProxylityUdpGatewayListener",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::FindInMap": ["ProxylityConfig", {"Ref": "AWS::Region"}, "ServiceToken"]
+        },
+        "ApiKey": {
+          "Fn::FindInMap": ["ProxylityConfig", "Account", "ApiKey"]
+        },
+        "Protocols": ["wg"],
+        "Peers": [
+          {
+            "PublicKey": {"Ref": "ClientPublicKey"},
+            "AllowedIPs": ["0.0.0.0/0", "::/0"]
+          }
+        ],
+        "ClientRestrictions": {
+          "Networks": [{"Ref": "ClientCidrToAllow"}]
+        },
+        "Destinations": [
+          {
+            "Description": "Echo lambda for wg-client integration testing.",
+            "Role": {
+              "Arn": {"Fn::GetAtt": ["DestinationRole", "Arn"]}
+            },
+            "Batching": {
+              "Count": 1,
+              "TimeoutInSeconds": 0.1
+            },
+            "Formatter": "utf8",
+            "DestinationArn": {"Fn::GetAtt": ["EchoFunction", "Arn"]}
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "Endpoint": {
+      "Value": {
+        "Fn::Sub": "${Listener.Domain}.proxylity.com:${Listener.Port}"
+      }
+    },
+    "PublicKey": {
+      "Value": {"Fn::GetAtt": ["Listener", "WireGuardPublicKey"]}
+    }
+  }
+}

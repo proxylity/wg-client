@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Proxylity.WireGuardClient</AssemblyName>
+    <RootNamespace>Proxylity.WireGuardClient</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Package identity -->
+    <PackageId>Proxylity.WireGuardClient</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Proxylity LLC</Authors>
+    <Copyright>Copyright © 2026 Proxylity LLC</Copyright>
+    <Product>WireGuard Client</Product>
+    <Description>Standalone UdpClient-compatible WireGuard client for .NET. Implements the Noise_IKpsk2_25519_ChaChaPoly_BLAKE2s handshake with ChaCha20-Poly1305 transport encryption.</Description>
+    <PackageTags>wireguard;noise-protocol;vpn;udp;networking;cryptography</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/proxylity/wg-client</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/proxylity/wg-client.git</RepositoryUrl>
+
+    <!-- Build quality -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Source Link / debugging -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="NSec.Cryptography" Version="25.4.0" />
+    <PackageReference Include="SauceControl.Blake2Fast" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Bundle README into the nupkg so it displays on NuGet.org -->
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>
