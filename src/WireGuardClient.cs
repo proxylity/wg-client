@@ -83,7 +83,7 @@ public sealed class WireGuardClient : IDisposable
         _receiveLoopTask = Task.Run(ReceiveLoopAsync);
     }
 
-    public int Available => _udpClient.Available;
+    public int Available => _receiveQueue.Reader.Count;
 
     public Socket Client => _udpClient.Client;
 
