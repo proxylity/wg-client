@@ -7,7 +7,7 @@ on:
 jobs:
   publish:
     name: Pack & Publish
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write   # required to push to GitHub Packages
