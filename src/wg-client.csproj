@@ -9,7 +9,7 @@
 
     <!-- Package identity -->
     <PackageId>Proxylity.WireGuardClient</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Proxylity LLC</Authors>
     <Copyright>Copyright © 2026 Proxylity LLC</Copyright>
     <Product>WireGuard Client</Product>
